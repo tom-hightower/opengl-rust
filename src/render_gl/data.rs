@@ -13,7 +13,12 @@ impl gl_vertex {
         gl_vertex { d0, d1, d2 }
     }
 
-    pub unsafe fn vertex_attrib_pointer(gl: &gl::Gl, stride: usize, location: usize, offset: usize) {
+    pub unsafe fn vertex_attrib_pointer(
+        gl: &gl::Gl,
+        stride: usize,
+        location: usize,
+        offset: usize,
+    ) {
         gl.EnableVertexAttribArray(location as gl::types::GLuint);
         gl.VertexAttribPointer(
             location as gl::types::GLuint,

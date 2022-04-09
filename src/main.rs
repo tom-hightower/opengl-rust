@@ -38,9 +38,8 @@ fn run() -> Result<(), failure::Error> {
     let gl_context = window.gl_create_context().unwrap();
     let gl = gl::Gl::load_with(|s| sdl_video.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
-    use std::ffi::CString;
-
     /* // shaders from source
+    use std::ffi::CString;
     let vert_shader =
         render_gl::Shader::from_vert_src(&gl, &CString::new(include_str!("triangle.vert")).unwrap())
             .unwrap();
