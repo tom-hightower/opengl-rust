@@ -9,6 +9,10 @@ authors = ["Tom Hightower <Tom.hightower356@gmail.com>"]
 [dependencies]
 sdl2 = { version = "0.35.2", features = ["bundled", "static-link"] }
 gl = { path = "lib/gl" }
+failure = "0.1.8"
+
+[build-dependencies]
+walkdir = "2.3.2"
 
 [features]
 gl_debug = ["gl/debug"]

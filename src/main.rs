@@ -1,11 +1,26 @@
+#[macro_use]
+extern crate failure;
+
 extern crate gl;
 extern crate sdl2;
 
-pub mod render_gl;
 pub mod polys;
+pub mod render_gl;
+pub mod resources;
+
+use crate::resources::Resources;
+use failure::err_msg;
+use std::path::Path;
 
 fn main() {
-    let sdl = sdl2::init().unwrap();
+    if let Err(e) = run() {
+        println!("{}", failure_to_string(e))
+    }
+}
+
+fn run() -> Result<(), failure::Error> {
+    let res = Resources::from_relative_exe_path(Path::new("assets"))?;
+    let sdl = sdl2::init().map_err(err_msg)?;
     let sdl_video = sdl.video().unwrap();
 
     let gl_attr = sdl_video.gl_attr();
@@ -23,6 +38,7 @@ fn main() {
 
     use std::ffi::CString;
 
+    /* // shaders from source
     let vert_shader =
         render_gl::Shader::from_vert_src(&gl, &CString::new(include_str!("triangle.vert")).unwrap())
             .unwrap();
@@ -30,13 +46,16 @@ fn main() {
         render_gl::Shader::from_frag_src(&gl, &CString::new(include_str!("triangle.frag")).unwrap())
             .unwrap();
     let shader_program = render_gl::Program::from_shaders(&gl, &[vert_shader, frag_shader]).unwrap();
+    */
+    // shaders via res
+    let shader_program = render_gl::Program::from_res(&gl, &res, "shaders/triangle")?;
     shader_program.set_used();
 
     let vertices: Vec<f32> = vec![
         // Positions        //Colors
-        -0.5, -0.5, 0.0,     1.0, 0.0, 0.0,  //bottom right
-        0.5, -0.5, 0.0,      0.0, 1.0, 0.0,  //bottom left
-        0.0, 0.5, 0.0,       0.0, 0.0, 1.0   //top
+        -0.5, -0.5, 0.0, 1.0, 0.0, 0.0, //bottom right
+        0.5, -0.5, 0.0, 0.0, 1.0, 0.0, //bottom left
+        0.0, 0.5, 0.0, 0.0, 0.0, 1.0, //top
     ];
     let mut vbo: gl::types::GLuint = 0;
     unsafe {
@@ -109,4 +128,36 @@ fn main() {
 
         window.gl_swap_window();
     }
+    Ok(())
+}
+
+pub fn failure_to_string(e: failure::Error) -> String {
+    use std::fmt::Write;
+
+    let mut result = String::new();
+
+    for (i, cause) in e
+        .iter_chain()
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .enumerate()
+    {
+        if i > 0 {
+            let _ = writeln!(&mut result, "\tWhich caused the following issue:");
+        }
+        let _ = write!(&mut result, "{}", cause);
+        if let Some(backtrace) = cause.backtrace() {
+            let backtrace_str = format!("{}", backtrace);
+            if backtrace_str.len() > 0 {
+                let _ = writeln!(&mut result, "\tThis happened at {}", backtrace);
+            } else {
+                let _ = writeln!(&mut result);
+            }
+        } else {
+            let _ = writeln!(&mut result);
+        }
+    }
+
+    result
 }

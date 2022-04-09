@@ -1,6 +1,23 @@
+use crate::resources::{self, Resources};
 use gl;
 use std;
 use std::ffi::{CStr, CString};
+
+#[derive(Debug, Fail)]
+pub enum Error {
+    #[fail(display = "Failed to load resource {}", name)]
+    ResourceLoad {
+        name: String,
+        #[cause]
+        inner: resources::Error,
+    },
+    #[fail(display = "Failed to link program {}: {}", name, message)]
+    LinkError { name: String, message: String },
+    #[fail(display = "Failed to complie shader {}: {}", name, message)]
+    CompileError { name: String, message: String },
+    #[fail(display = "Cannot determine shader type for resource {}", name)]
+    UnknownShaderType { name: String },
+}
 
 pub struct Program {
     gl: gl::Gl,
@@ -8,6 +25,24 @@ pub struct Program {
 }
 
 impl Program {
+    pub fn from_res(gl: &gl::Gl, res: &Resources, name: &str) -> Result<Program, Error> {
+        const POSSIBLE_EXT: [&str; 2] = [".vert", ".frag"];
+
+        let resource_names = POSSIBLE_EXT
+            .iter()
+            .map(|file_extension| format!("{}{}", name, file_extension))
+            .collect::<Vec<String>>();
+        let shaders = resource_names
+            .iter()
+            .map(|resource_name| Shader::from_res(gl, res, resource_name))
+            .collect::<Result<Vec<Shader>, Error>>()?;
+
+        Program::from_shaders(gl, &shaders[..]).map_err(|message| Error::LinkError {
+            name: name.into(),
+            message,
+        })
+    }
+
     pub fn from_shaders(gl: &gl::Gl, shaders: &[Shader]) -> Result<Program, String> {
         let program_id = unsafe { gl.CreateProgram() };
 
@@ -71,9 +106,35 @@ pub struct Shader {
 }
 
 impl Shader {
-    pub fn from_src(gl: &gl::Gl, src: &CStr, shader_type: gl::types::GLenum) -> Result<Shader, String> {
+    pub fn from_res(gl: &gl::Gl, res: &Resources, name: &str) -> Result<Shader, Error> {
+        const POSSIBLE_EXT: [(&str, gl::types::GLenum); 2] =
+            [(".vert", gl::VERTEX_SHADER), (".frag", gl::FRAGMENT_SHADER)];
+        let shader_type = POSSIBLE_EXT
+            .iter()
+            .find(|&&(file_extension, _)| name.ends_with(file_extension))
+            .map(|&(_, s_type)| s_type)
+            .ok_or_else(|| Error::UnknownShaderType { name: name.into() })?;
+        let src = res.load_cstring(name).map_err(|e| Error::ResourceLoad {
+            name: name.into(),
+            inner: e,
+        })?;
+
+        Shader::from_src(gl, &src, shader_type).map_err(|message| Error::CompileError {
+            name: name.into(),
+            message,
+        })
+    }
+
+    pub fn from_src(
+        gl: &gl::Gl,
+        src: &CStr,
+        shader_type: gl::types::GLenum,
+    ) -> Result<Shader, String> {
         let shader_id = shader_from_src(gl, src, shader_type)?;
-        Ok(Shader { gl: gl.clone(), shader_id })
+        Ok(Shader {
+            gl: gl.clone(),
+            shader_id,
+        })
     }
 
     pub fn from_vert_src(gl: &gl::Gl, src: &CStr) -> Result<Shader, String> {
