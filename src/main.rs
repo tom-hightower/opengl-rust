@@ -2,6 +2,7 @@ extern crate gl;
 extern crate sdl2;
 
 pub mod render_gl;
+pub mod polys;
 
 fn main() {
     let sdl = sdl2::init().unwrap();
@@ -31,7 +32,12 @@ fn main() {
     let shader_program = render_gl::Program::from_shaders(&[vert_shader, frag_shader]).unwrap();
     shader_program.set_used();
 
-    let vertices: Vec<f32> = vec![-0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.0, 0.5, 0.0];
+    let vertices: Vec<f32> = vec![
+        // Positions        //Colors
+        -0.5, -0.5, 0.0,     1.0, 0.0, 0.0,  //bottom right
+        0.5, -0.5, 0.0,      0.0, 1.0, 0.0,  //bottom left
+        0.0, 0.5, 0.0,       0.0, 0.0, 1.0   //top
+    ];
     let mut vbo: gl::types::GLuint = 0;
     unsafe {
         gl::GenBuffers(1, &mut vbo);
@@ -55,15 +61,26 @@ fn main() {
     unsafe {
         gl::BindVertexArray(vao);
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl::EnableVertexAttribArray(0);
+
+        gl::EnableVertexAttribArray(0); // location data
         gl::VertexAttribPointer(
             0,
             3,
             gl::FLOAT,
             gl::FALSE,
-            (3 * std::mem::size_of::<f32>()) as gl::types::GLint,
+            (6 * std::mem::size_of::<f32>()) as gl::types::GLint,
             std::ptr::null(),
         );
+        gl::EnableVertexAttribArray(1); // color data
+        gl::VertexAttribPointer(
+            1,
+            3,
+            gl::FLOAT,
+            gl::FALSE,
+            (6 * std::mem::size_of::<f32>()) as gl::types::GLint,
+            (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid,
+        );
+
         gl::BindBuffer(gl::ARRAY_BUFFER, 0);
         gl::BindVertexArray(0);
     }
