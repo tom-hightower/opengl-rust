@@ -1,2 +1,2 @@
 # opengl-rust
-Template for rendering using opengl in rust
+practice rendering using opengl in rust
