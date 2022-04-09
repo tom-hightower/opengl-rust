@@ -3,6 +3,7 @@ extern crate failure;
 
 extern crate gl;
 extern crate sdl2;
+extern crate vec_2_10_10_10;
 
 pub mod polys;
 pub mod render_gl;
@@ -55,15 +56,15 @@ fn run() -> Result<(), failure::Error> {
     let vertices: Vec<Vertex> = vec![
         Vertex {
             pos: (-0.5, -0.5, 0.0).into(),
-            clr: (1.0, 0.0, 0.0).into(),
+            clr: (1.0, 0.0, 0.0, 1.0).into(),
         }, //bottom right
         Vertex {
             pos: (0.5, -0.5, 0.0).into(),
-            clr: (0.0, 1.0, 0.0).into(),
+            clr: (0.0, 1.0, 0.0, 1.0).into(),
         }, //bottom left
         Vertex {
             pos: (0.0, 0.5, 0.0).into(),
-            clr: (0.0, 0.0, 1.0).into(),
+            clr: (0.0, 0.0, 1.0, 1.0).into(),
         }, //top
     ];
     let mut vbo: gl::types::GLuint = 0;

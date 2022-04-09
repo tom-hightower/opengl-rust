@@ -10,6 +10,8 @@ authors = ["Tom Hightower <Tom.hightower356@gmail.com>"]
 sdl2 = { version = "0.35.2", features = ["bundled", "static-link"] }
 gl = { path = "lib/gl" }
 failure = "0.1.8"
+vec-2-10-10-10 = "0.1.2"
+half = "1.8.2"
 
 [build-dependencies]
 walkdir = "2.3.2"
