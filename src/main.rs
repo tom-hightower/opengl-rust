@@ -8,6 +8,8 @@ pub mod polys;
 pub mod render_gl;
 pub mod resources;
 
+use crate::polys::Vertex;
+use crate::render_gl::data;
 use crate::resources::Resources;
 use failure::err_msg;
 use std::path::Path;
@@ -51,11 +53,19 @@ fn run() -> Result<(), failure::Error> {
     let shader_program = render_gl::Program::from_res(&gl, &res, "shaders/triangle")?;
     shader_program.set_used();
 
-    let vertices: Vec<f32> = vec![
-        // Positions        //Colors
-        -0.5, -0.5, 0.0, 1.0, 0.0, 0.0, //bottom right
-        0.5, -0.5, 0.0, 0.0, 1.0, 0.0, //bottom left
-        0.0, 0.5, 0.0, 0.0, 0.0, 1.0, //top
+    let vertices: Vec<Vertex> = vec![
+        Vertex {
+            pos: (-0.5, -0.5, 0.0).into(),
+            clr: (1.0, 0.0, 0.0).into(),
+        }, //bottom right
+        Vertex {
+            pos: (0.5, -0.5, 0.0).into(),
+            clr: (0.0, 1.0, 0.0).into(),
+        }, //bottom left
+        Vertex {
+            pos: (0.0, 0.5, 0.0).into(),
+            clr: (0.0, 0.0, 1.0).into(),
+        }, //top
     ];
     let mut vbo: gl::types::GLuint = 0;
     unsafe {
@@ -66,7 +76,7 @@ fn run() -> Result<(), failure::Error> {
         gl.BindBuffer(gl::ARRAY_BUFFER, vbo);
         gl.BufferData(
             gl::ARRAY_BUFFER,
-            (vertices.len() * std::mem::size_of::<f32>()) as gl::types::GLsizeiptr,
+            (vertices.len() * std::mem::size_of::<Vertex>()) as gl::types::GLsizeiptr,
             vertices.as_ptr() as *const gl::types::GLvoid,
             gl::STATIC_DRAW,
         );
@@ -81,24 +91,7 @@ fn run() -> Result<(), failure::Error> {
         gl.BindVertexArray(vao);
         gl.BindBuffer(gl::ARRAY_BUFFER, vbo);
 
-        gl.EnableVertexAttribArray(0); // location data
-        gl.VertexAttribPointer(
-            0,
-            3,
-            gl::FLOAT,
-            gl::FALSE,
-            (6 * std::mem::size_of::<f32>()) as gl::types::GLint,
-            std::ptr::null(),
-        );
-        gl.EnableVertexAttribArray(1); // color data
-        gl.VertexAttribPointer(
-            1,
-            3,
-            gl::FLOAT,
-            gl::FALSE,
-            (6 * std::mem::size_of::<f32>()) as gl::types::GLint,
-            (3 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid,
-        );
+        Vertex::vertex_attrib_pointers(&gl);
 
         gl.BindBuffer(gl::ARRAY_BUFFER, 0);
         gl.BindVertexArray(0);

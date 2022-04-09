@@ -1,68 +1,12 @@
+use crate::render_gl::data;
+
 pub const VERT_RADIUS: f32 = 2.0;
 pub const CYLINDER_DIVS: i32 = 15;
 
-pub struct Point {
-    x: f32,
-    y: f32,
-    z: f32,
-}
-
-impl Point {
-    pub fn sub(v1: &Point, v2: &Point) -> Point {
-        let x: f32 = v1.x - v2.x;
-        let y: f32 = v1.y - v2.y;
-        let z: f32 = v1.z - v2.z;
-        Point { x, y, z }
-    }
-
-    pub fn add(v1: &Point, v2: &Point) -> Point {
-        let x: f32 = v1.x + v2.x;
-        let y: f32 = v1.y + v2.y;
-        let z: f32 = v1.z + v2.z;
-        Point { x, y, z }
-    }
-
-    pub fn dot(v1: &Point, v2: &Point) -> f32 {
-        (v1.x * v2.x) + (v1.y * v2.y) + (v1.z * v2.z)
-    }
-
-    pub fn cross(v1: &Point, v2: &Point) -> Point {
-        let x = (v1.y * v2.z) - (v1.z * v2.y);
-        let y = (v1.z * v2.x) - (v1.x * v2.z);
-        let z = (v1.x * v2.y) - (v1.y * v2.x);
-        Point { x, y, z }
-    }
-
-    pub fn copy(&self) -> Point {
-        Point {
-            x: self.x,
-            y: self.y,
-            z: self.z,
-        }
-    }
-
-    pub fn mag(&self) -> f32 {
-        f32::sqrt((self.x * self.x) + (self.y * self.y) + (self.z * self.z))
-    }
-
-    pub fn norm(&mut self) {
-        let mag = self.mag();
-        self.x = self.x / mag;
-        self.y = self.y / mag;
-        self.z = self.z / mag;
-    }
-
-    pub fn mult(&mut self, factor: f32) {
-        self.x = self.x * factor;
-        self.y = self.y * factor;
-        self.z = self.z * factor;
-    }
-}
-
 pub struct Cylinder {
-    bottom: Vec<Point>,
-    top: Vec<Point>,
-    normals: Vec<Point>,
+    bottom: Vec<data::gl_vertex>,
+    top: Vec<data::gl_vertex>,
+    normals: Vec<data::gl_vertex>,
 }
 
 impl Cylinder {
@@ -75,46 +19,47 @@ impl Cylinder {
         y2: f32,
         z2: f32,
     ) -> Cylinder {
-        let mut top: Vec<Point> = Vec::new();
-        let mut bottom: Vec<Point> = Vec::new();
-        let mut normals: Vec<Point> = Vec::new();
-        let top_center = Point {
-            x: x1,
-            y: y1,
-            z: z1,
+        let mut top: Vec<data::gl_vertex> = Vec::new();
+        let mut bottom: Vec<data::gl_vertex> = Vec::new();
+        let mut normals: Vec<data::gl_vertex> = Vec::new();
+        let top_center = data::gl_vertex {
+            d0: x1,
+            d1: y1,
+            d2: z1,
         };
-        let bottom_center = Point {
-            x: x2,
-            y: y2,
-            z: z2,
+        let bottom_center = data::gl_vertex {
+            d0: x2,
+            d1: y2,
+            d2: z2,
         };
-        let mid_vec = Point::sub(&top_center, &bottom_center);
-        let mut ref_vec = Point::add(
+        let mid_vec = data::gl_vertex::sub(&top_center, &bottom_center);
+        let mut ref_vec = data::gl_vertex::add(
             &mid_vec,
-            &Point {
-                x: 1.0,
-                y: 1.0,
-                z: 1.0,
+            &data::gl_vertex {
+                d0: 1.0,
+                d1: 1.0,
+                d2: 1.0,
             },
         );
-        let mut diff = Point::sub(&ref_vec, &mid_vec);
-        while diff.mag() == (ref_vec.mag() - mid_vec.mag()) || Point::dot(&ref_vec, &mid_vec) == 0.
+        let mut diff = data::gl_vertex::sub(&ref_vec, &mid_vec);
+        while diff.mag() == (ref_vec.mag() - mid_vec.mag())
+            || data::gl_vertex::dot(&ref_vec, &mid_vec) == 0.
         {
-            ref_vec = Point::add(
+            ref_vec = data::gl_vertex::add(
                 &ref_vec,
-                &Point {
-                    x: 0.5,
-                    y: 2.0,
-                    z: 1.0,
+                &data::gl_vertex {
+                    d0: 0.5,
+                    d1: 2.0,
+                    d2: 1.0,
                 },
             );
-            diff = Point::sub(&ref_vec, &mid_vec);
+            diff = data::gl_vertex::sub(&ref_vec, &mid_vec);
         }
-        let perp_vec = Point::cross(&ref_vec, &mid_vec);
+        let perp_vec = data::gl_vertex::cross(&ref_vec, &mid_vec);
         let mut u = perp_vec.copy();
         u.norm();
         u.mult(rad);
-        let mut v = Point::cross(&mid_vec, &u);
+        let mut v = data::gl_vertex::cross(&mid_vec, &u);
         v.norm();
         v.mult(rad);
         let theta = ((360 / CYLINDER_DIVS) as f32).to_radians();
@@ -123,9 +68,15 @@ impl Cylinder {
             temp_u.mult((theta * i as f32).cos());
             let mut temp_v = v.copy();
             temp_v.mult((theta * i as f32).sin());
-            bottom.push(Point::add(&bottom_center, &Point::add(&temp_u, &temp_v)));
-            top.push(Point::add(&top_center, &Point::add(&temp_u, &temp_v)));
-            normals.push(Point::sub(&bottom[i as usize], &bottom_center));
+            bottom.push(data::gl_vertex::add(
+                &bottom_center,
+                &data::gl_vertex::add(&temp_u, &temp_v),
+            ));
+            top.push(data::gl_vertex::add(
+                &top_center,
+                &data::gl_vertex::add(&temp_u, &temp_v),
+            ));
+            normals.push(data::gl_vertex::sub(&bottom[i as usize], &bottom_center));
         }
         Cylinder {
             bottom,
@@ -135,13 +86,28 @@ impl Cylinder {
     }
 }
 
+#[derive(Copy, Clone, Debug)]
+#[repr(C, packed)]
 pub struct Vertex {
-    x: f32,
-    y: f32,
-    z: f32,
-    nx: f32,
-    ny: f32,
-    nz: f32,
+    pub pos: data::gl_vertex,
+    pub clr: data::gl_vertex,
+}
+
+impl Vertex {
+    pub fn vertex_attrib_pointers(gl: &gl::Gl) {
+        let stride = std::mem::size_of::<Self>();
+        let location = 0;
+        let offset = 0;
+        unsafe {
+            data::gl_vertex::vertex_attrib_pointer(gl, stride, location, offset);
+        }
+
+        let location = 1;
+        let offset = offset + std::mem::size_of::<data::gl_vertex>();
+        unsafe {
+            data::gl_vertex::vertex_attrib_pointer(gl, stride, location, offset);
+        }
+    }
 }
 
 pub struct Polygons {
@@ -151,14 +117,10 @@ pub struct Polygons {
 }
 
 impl Polygons {
-    pub fn new_vertex(&mut self, x: f32, y: f32, z: f32, nx: f32, ny: f32, nz: f32) {
+    pub fn new_vertex(&mut self, x: f32, y: f32, z: f32, r: f32, g: f32, b: f32) {
         self.vertices.push(Vertex {
-            x,
-            y,
-            z,
-            nx,
-            ny,
-            nz,
+            pos: data::gl_vertex::new(x, y, z),
+            clr: data::gl_vertex::new(r, g, b),
         });
     }
 
