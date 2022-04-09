@@ -10,7 +10,7 @@ pub mod render_gl;
 pub mod resources;
 
 use crate::polys::Vertex;
-use crate::render_gl::data;
+use crate::render_gl::{buffer, data};
 use crate::resources::Resources;
 use failure::err_msg;
 use std::path::Path;
@@ -67,35 +67,20 @@ fn run() -> Result<(), failure::Error> {
             clr: (0.0, 0.0, 1.0, 1.0).into(),
         }, //top
     ];
-    let mut vbo: gl::types::GLuint = 0;
-    unsafe {
-        gl.GenBuffers(1, &mut vbo);
-    }
 
-    unsafe {
-        gl.BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl.BufferData(
-            gl::ARRAY_BUFFER,
-            (vertices.len() * std::mem::size_of::<Vertex>()) as gl::types::GLsizeiptr,
-            vertices.as_ptr() as *const gl::types::GLvoid,
-            gl::STATIC_DRAW,
-        );
-        gl.BindBuffer(gl::ARRAY_BUFFER, 0)
-    }
+    let vbo = buffer::ArrayBuffer::new(&gl);
 
-    let mut vao: gl::types::GLuint = 0;
-    unsafe {
-        gl.GenVertexArrays(1, &mut vao);
-    }
-    unsafe {
-        gl.BindVertexArray(vao);
-        gl.BindBuffer(gl::ARRAY_BUFFER, vbo);
+    vbo.bind();
+    vbo.static_draw_data(&vertices);
+    vbo.unbind();
 
-        Vertex::vertex_attrib_pointers(&gl);
+    let vao = buffer::VertexArray::new(&gl);
 
-        gl.BindBuffer(gl::ARRAY_BUFFER, 0);
-        gl.BindVertexArray(0);
-    }
+    vao.bind();
+    vbo.bind();
+    Vertex::vertex_attrib_pointers(&gl);
+    vbo.unbind();
+    vao.unbind();
 
     unsafe {
         gl.Viewport(0, 0, 960, 640);
@@ -114,8 +99,8 @@ fn run() -> Result<(), failure::Error> {
         }
 
         shader_program.set_used();
+        vao.bind();
         unsafe {
-            gl.BindVertexArray(vao);
             gl.DrawArrays(gl::TRIANGLES, 0, 3);
         }
 
